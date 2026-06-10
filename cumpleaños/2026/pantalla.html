@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pantalla 2026</title>
+  <style>
+    :root {
+      --ink: #6f1b45;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow: hidden;
+      caret-color: transparent;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 20% 16%, #ffe8f2 0 12%, transparent 12%),
+        radial-gradient(circle at 82% 21%, #ffd9ea 0 10%, transparent 10%),
+        linear-gradient(160deg, #ffd6e8, #ffb4d3);
+    }
+    .wrap {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 10px;
+    }
+    .room {
+      position: relative;
+      width: min(1120px, 98vw);
+      height: min(760px, 88vh);
+      border-radius: 18px;
+      border: 2px solid #ffd1e5;
+      overflow: hidden;
+      box-shadow: 0 24px 45px rgba(104, 19, 61, 0.25);
+      background: linear-gradient(180deg, #ffeaf3 0%, #ffc3de 100%);
+    }
+    canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .hud {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(980px, calc(100vw - 16px));
+      padding: 0.65rem 0.9rem;
+      border-radius: 12px;
+      border: 1px solid #ffd6e8;
+      background: rgba(255, 247, 252, 0.95);
+      text-align: center;
+      z-index: 2;
+    }
+    .hud h1 {
+      margin: 0 0 0.24rem;
+      font-size: 1.06rem;
+      color: #a6225d;
+    }
+    .hud p {
+      margin: 0;
+      font-size: 0.93rem;
+      color: #7f1f4c;
+    }
+    .actions {
+      margin-top: 0.55rem;
+      display: flex;
+      gap: 0.55rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .actions a {
+      text-decoration: none;
+      color: #9d255d;
+      border: 1px solid #ffd5e7;
+      border-radius: 999px;
+      padding: 0.42rem 0.8rem;
+      background: #fff;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="room" id="room">
+      <canvas id="game"></canvas>
+    </section>
+  </div>
+
+  <main class="hud">
+    <h1>Habitacion Interactiva 2026</h1>
+    <p>Flechas/WASD o clic. My Melody mantiene velocidad uniforme y hay colisiones con muebles.</p>
+    <div class="actions">
+      <a href="./intro.html">Ver intro</a>
+      <a href="../index.html">Volver al login</a>
+    </div>
+  </main>
+
+  <script>
+    const room = document.getElementById("room");
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const WORLD_W = 1400;
+    const WORLD_H = 900;
+    const FLOOR = { x: 210, y: 260, w: 980, h: 560 };
+    const SPEED = 300; // px/s uniforme en pantalla
+    const CHAR_W = 180;
+    const CHAR_H = 180;
+
+    const spriteBase = "./assets/sprites/My Melody sprites";
+    const spritePaths = {
+      arriba: [1, 2, 3, 4].map((i) => `${spriteBase}/arriba${i}.png`),
+      abajo: [1, 2, 3, 4].map((i) => `${spriteBase}/abajo${i}.png`),
+      izquierda: [1, 2, 3, 4].map((i) => `${spriteBase}/izquierda${i}.png`),
+      derecha: [1, 2, 3, 4].map((i) => `${spriteBase}/derecha${i}.png`),
+    };
+
+    const sprites = {};
+    for (const [dir, paths] of Object.entries(spritePaths)) {
+      sprites[dir] = paths.map((src) => {
+        const img = new Image();
+        img.src = src;
+        return img;
+      });
+    }
+
+    const furniture = [
+      { id: "bed", x: 290, y: 560, w: 350, h: 170, z: 720, color: { top: "#ffbfdc", side: "#e27cab", front: "#d66da0" }, label: "Cama" },
+      { id: "desk", x: 860, y: 560, w: 250, h: 150, z: 700, color: { top: "#e1b688", side: "#bc8d62", front: "#a77853" }, label: "Escritorio" },
+      { id: "shelf", x: 930, y: 320, w: 180, h: 180, z: 500, color: { top: "#ffd9eb", side: "#e79dc2", front: "#d989b3" }, label: "Estanteria" },
+    ];
+
+    const collisions = [
+      { x: 315, y: 612, w: 300, h: 95 },
+      { x: 885, y: 610, w: 200, h: 85 },
+      { x: 950, y: 370, w: 145, h: 120 },
+    ];
+
+    const player = {
+      x: FLOOR.x + FLOOR.w / 2,
+      y: FLOOR.y + FLOOR.h / 2 + 100,
+      w: CHAR_W,
+      h: CHAR_H,
+      dir: "abajo",
+      frame: 0,
+      animTimer: 0,
+      target: null,
+    };
+
+    const keys = new Set();
+    let lastTime = performance.now();
+
+    function resizeCanvas() {
+      const rect = room.getBoundingClientRect();
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function clamp(v, min, max) {
+      return Math.max(min, Math.min(max, v));
+    }
+
+    function intersects(a, b) {
+      return (
+        a.x < b.x + b.w &&
+        a.x + a.w > b.x &&
+        a.y < b.y + b.h &&
+        a.y + a.h > b.y
+      );
+    }
+
+    function playerFootRect(nextX, nextY) {
+      return {
+        x: nextX - 26,
+        y: nextY - 16,
+        w: 52,
+        h: 32,
+      };
+    }
+
+    function canMoveTo(nextX, nextY) {
+      const fx = clamp(nextX, FLOOR.x + 8, FLOOR.x + FLOOR.w - 8);
+      const fy = clamp(nextY, FLOOR.y + 8, FLOOR.y + FLOOR.h - 8);
+      const foot = playerFootRect(fx, fy);
+      for (const c of collisions) {
+        if (intersects(foot, c)) return null;
+      }
+      return { x: fx, y: fy };
+    }
+
+    function keyToMove(key) {
+      const k = key.toLowerCase();
+      if (k === "arrowup" || k === "w") return "up";
+      if (k === "arrowdown" || k === "s") return "down";
+      if (k === "arrowleft" || k === "a") return "left";
+      if (k === "arrowright" || k === "d") return "right";
+      return null;
+    }
+
+    function updateDirection(vx, vy) {
+      if (Math.abs(vx) > Math.abs(vy)) {
+        player.dir = vx >= 0 ? "derecha" : "izquierda";
+      } else if (Math.abs(vy) > 0) {
+        player.dir = vy >= 0 ? "abajo" : "arriba";
+      }
+    }
+
+    function updateSprite(moving, dt) {
+      let nextFrame = 0;
+      if (moving) {
+        player.animTimer += dt;
+        const frameDuration = 1 / 10;
+        while (player.animTimer >= frameDuration) {
+          player.animTimer -= frameDuration;
+          player.frame = (player.frame + 1) % 4;
+        }
+        nextFrame = player.frame;
+      } else {
+        player.frame = 0;
+      }
+      return sprites[player.dir][nextFrame];
+    }
+
+    function movePlayer(dt) {
+      let vx = 0;
+      let vy = 0;
+
+      if (keys.has("up")) vy -= 1;
+      if (keys.has("down")) vy += 1;
+      if (keys.has("left")) vx -= 1;
+      if (keys.has("right")) vx += 1;
+
+      let moving = vx !== 0 || vy !== 0;
+
+      if (!moving && player.target) {
+        const dx = player.target.x - player.x;
+        const dy = player.target.y - player.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist <= SPEED * dt) {
+          const hit = canMoveTo(player.target.x, player.target.y);
+          if (hit) {
+            player.x = hit.x;
+            player.y = hit.y;
+          }
+          player.target = null;
+        } else if (dist > 0) {
+          vx = dx / dist;
+          vy = dy / dist;
+          moving = true;
+        }
+      }
+
+      if (moving) {
+        const len = Math.hypot(vx, vy) || 1;
+        vx /= len;
+        vy /= len;
+        updateDirection(vx, vy);
+
+        const step = SPEED * dt;
+        const nextX = player.x + vx * step;
+        const nextY = player.y + vy * step;
+
+        const tryBoth = canMoveTo(nextX, nextY);
+        if (tryBoth) {
+          player.x = tryBoth.x;
+          player.y = tryBoth.y;
+        } else {
+          const tryX = canMoveTo(nextX, player.y);
+          if (tryX) {
+            player.x = tryX.x;
+            player.y = tryX.y;
+          } else {
+            const tryY = canMoveTo(player.x, nextY);
+            if (tryY) {
+              player.x = tryY.x;
+              player.y = tryY.y;
+            } else if (player.target) {
+              player.target = null;
+            }
+          }
+        }
+      }
+
+      return moving;
+    }
+
+    function getView() {
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      const s = Math.min(w / WORLD_W, h / WORLD_H);
+      const ox = (w - WORLD_W * s) / 2;
+      const oy = (h - WORLD_H * s) / 2;
+      return { w, h, s, ox, oy };
+    }
+
+    function render(moving, dt) {
+      const { w, h, s, ox, oy } = getView();
+      ctx.clearRect(0, 0, w, h);
+      ctx.save();
+      ctx.translate(ox, oy);
+      ctx.scale(s, s);
+
+      // Fondo y sala
+      ctx.fillStyle = "#ffd6e8";
+      ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+
+      ctx.fillStyle = "#ffdced";
+      ctx.fillRect(FLOOR.x, FLOOR.y - 180, FLOOR.w, 180);
+      ctx.fillStyle = "#ffcfe4";
+      ctx.fillRect(FLOOR.x, FLOOR.y - 180, 140, 180);
+      ctx.fillStyle = "#ffbdd9";
+      ctx.fillRect(FLOOR.x + FLOOR.w - 140, FLOOR.y - 180, 140, 180);
+      ctx.fillStyle = "#ffd8ea";
+      ctx.fillRect(FLOOR.x, FLOOR.y - 16, FLOOR.w, 16);
+
+      ctx.fillStyle = "#ffeaf4";
+      ctx.fillRect(FLOOR.x + 50, FLOOR.y - 125, 120, 78);
+      ctx.fillRect(FLOOR.x + FLOOR.w - 170, FLOOR.y - 125, 120, 78);
+      ctx.fillStyle = "#ff9fc6";
+      ctx.fillRect(FLOOR.x + 90, FLOOR.y - 95, 40, 18);
+      ctx.fillRect(FLOOR.x + FLOOR.w - 130, FLOOR.y - 95, 40, 18);
+      ctx.fillStyle = "#fff2f8";
+      ctx.beginPath();
+      ctx.arc(FLOOR.x + FLOOR.w / 2, FLOOR.y - 130, 30, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#ffd6ea";
+      ctx.fillRect(FLOOR.x + FLOOR.w / 2 - 3, FLOOR.y - 180, 6, 50);
+
+      const tile = 56;
+      for (let y = FLOOR.y; y < FLOOR.y + FLOOR.h; y += tile) {
+        for (let x = FLOOR.x; x < FLOOR.x + FLOOR.w; x += tile) {
+          const alt = ((x / tile + y / tile) % 2) === 0;
+          ctx.fillStyle = alt ? "#f8a9cb" : "#f2a0c4";
+          ctx.fillRect(x, y, tile, tile);
+        }
+      }
+
+      ctx.fillStyle = "#ffc8e0";
+      ctx.fillRect(FLOOR.x + 340, FLOOR.y + 210, 300, 180);
+      ctx.strokeStyle = "#ffdff0";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(FLOOR.x + 340, FLOOR.y + 210, 300, 180);
+
+      const drawable = furniture.map((f) => ({ type: "furniture", y: f.z, f }));
+      drawable.push({ type: "player", y: player.y + 8 });
+      drawable.sort((a, b) => a.y - b.y);
+
+      for (const item of drawable) {
+        if (item.type === "furniture") {
+          const f = item.f;
+          ctx.fillStyle = f.color.top;
+          ctx.fillRect(f.x, f.y, f.w, f.h * 0.45);
+          ctx.fillStyle = f.color.side;
+          ctx.fillRect(f.x, f.y + f.h * 0.45, f.w, f.h * 0.55);
+          ctx.fillStyle = f.color.front;
+          ctx.fillRect(f.x + 8, f.y + f.h * 0.57, f.w - 16, f.h * 0.34);
+        } else {
+          ctx.fillStyle = "rgba(64, 16, 39, 0.25)";
+          ctx.beginPath();
+          ctx.ellipse(player.x, player.y + 3, 34, 13, 0, 0, Math.PI * 2);
+          ctx.fill();
+          const sprite = updateSprite(moving, dt);
+          ctx.drawImage(sprite, player.x - player.w / 2, player.y - player.h, player.w, player.h);
+        }
+      }
+
+      ctx.restore();
+    }
+
+    function toWorld(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      const sx = clientX - rect.left;
+      const sy = clientY - rect.top;
+      const s = Math.min(rect.width / WORLD_W, rect.height / WORLD_H);
+      const ox = (rect.width - WORLD_W * s) / 2;
+      const oy = (rect.height - WORLD_H * s) / 2;
+      const px = (sx - ox) / s;
+      const py = (sy - oy) / s;
+      return { x: px, y: py };
+    }
+
+    function tick(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
+      const moving = movePlayer(dt);
+      render(moving, dt);
+      requestAnimationFrame(tick);
+    }
+
+    canvas.addEventListener("click", (e) => {
+      const p = toWorld(e.clientX, e.clientY);
+      player.target = {
+        x: clamp(p.x, FLOOR.x + 10, FLOOR.x + FLOOR.w - 10),
+        y: clamp(p.y, FLOOR.y + 10, FLOOR.y + FLOOR.h - 10),
+      };
+    });
+
+    window.addEventListener("keydown", (e) => {
+      const m = keyToMove(e.key);
+      if (!m) return;
+      e.preventDefault();
+      player.target = null;
+      keys.add(m);
+    });
+
+    window.addEventListener("keyup", (e) => {
+      const m = keyToMove(e.key);
+      if (!m) return;
+      e.preventDefault();
+      keys.delete(m);
+    });
+
+    window.addEventListener("blur", () => {
+      keys.clear();
+      player.target = null;
+    });
+
+    window.addEventListener("resize", resizeCanvas);
+
+    resizeCanvas();
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>
