@@ -1,0 +1,1639 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Intro 2026</title>
+  <style>
+    :root {
+      --bg-a: #060b18;
+      --bg-b: #122548;
+      --text: #ebf2ff;
+      --muted: #9db1db;
+      --accent: #86bcff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1000px 560px at 50% 120%, #18396d 0, transparent 70%),
+        linear-gradient(165deg, var(--bg-a), var(--bg-b));
+    }
+
+    #stars {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .scene {
+      position: relative;
+      z-index: 1;
+      width: min(820px, 100%);
+      padding: 1.2rem;
+      display: grid;
+      justify-items: center;
+      text-align: center;
+      gap: 1rem;
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+      transition: opacity 0.55s ease, transform 0.55s ease;
+    }
+
+    .scene-top {
+      width: min(760px, 96%);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    body.ready .scene {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .version-corner {
+      margin: 0;
+      color: var(--accent);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-size: 0.9rem;
+      font-weight: 700;
+      position: static;
+      text-shadow: 0 0 14px rgba(134, 188, 255, 0.3);
+    }
+
+    .skip-btn {
+      position: static;
+      border: 1px solid rgba(157, 177, 219, 0.45);
+      background: rgba(11, 20, 36, 0.55);
+      color: #d8e6ff;
+      border-radius: 999px;
+      padding: 0.45rem 0.8rem;
+      font: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+
+    .skip-btn:hover {
+      background: rgba(16, 30, 54, 0.72);
+      border-color: rgba(157, 177, 219, 0.7);
+    }
+
+    .boot-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      background: #000;
+      display: block;
+      padding: 1.2rem 1.4rem;
+      transition: opacity 0.45s ease, visibility 0.45s ease;
+    }
+
+    .boot-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .boot-log {
+      width: min(760px, 96%);
+      color: #b9cdf0;
+      font-family: Consolas, "Courier New", monospace;
+      text-align: left;
+      line-height: 1.6;
+      font-size: clamp(1rem, 2.1vw, 1.18rem);
+      margin: 0;
+    }
+
+    .start-prompt {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      border: 0;
+      background: transparent;
+      color: #b9cdf0;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: clamp(1rem, 2.4vw, 1.28rem);
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      animation: terminal-blink 1.9s ease-in-out infinite;
+      padding: 0.4rem 0.6rem;
+    }
+
+    .start-prompt.hidden {
+      opacity: 0;
+      visibility: hidden;
+      animation: none;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.8rem, 4.2vw, 2.7rem);
+      text-shadow: 0 0 22px rgba(134, 188, 255, 0.3);
+    }
+
+    .earth-wrap {
+      position: relative;
+      width: min(340px, 72vw);
+      aspect-ratio: 1 / 1;
+      margin: clamp(1.8rem, 6vw, 2.6rem) 0;
+      display: grid;
+      place-items: center;
+    }
+
+    .earth-wrap.impact {
+      animation: earth-impact 0.62s cubic-bezier(0.21, 0.72, 0.24, 1);
+    }
+
+    .moon-track {
+      position: absolute;
+      inset: -26%;
+      pointer-events: none;
+      z-index: 4;
+    }
+
+    .moon {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 17%;
+      aspect-ratio: 1 / 1;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 30% 26%, #f3f4f0 0%, #d7d8d2 52%, #b5b7b2 100%);
+      box-shadow:
+        inset -3px -2px 5px rgba(0, 0, 0, 0.28),
+        0 0 9px rgba(232, 232, 222, 0.3);
+    }
+
+    .moon::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 38% 34%, rgba(135, 137, 132, 0.24) 0 10%, transparent 11%),
+        radial-gradient(circle at 58% 50%, rgba(123, 125, 120, 0.2) 0 9%, transparent 10%),
+        radial-gradient(circle at 47% 66%, rgba(130, 132, 127, 0.16) 0 8%, transparent 9%);
+    }
+
+    .moon::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle at 72% 58%, rgba(0, 0, 0, 0.35) 0 44%, transparent 46%);
+      pointer-events: none;
+    }
+
+    .glow {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(96, 167, 255, 0.4), transparent 70%);
+      transform: scale(1.18);
+      filter: blur(18px);
+    }
+
+    .earth {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 50%;
+      overflow: hidden;
+      z-index: 2;
+      background: radial-gradient(circle at 30% 24%, #95ddff 0%, #4fa8ef 35%, #215fa9 70%, #173f78 100%);
+      box-shadow:
+        inset 10px 8px 18px rgba(255, 255, 255, 0.16),
+        0 0 60px rgba(90, 160, 255, 0.3);
+    }
+
+    .texture-scroll {
+      position: absolute;
+      inset: 0;
+      width: 200%;
+      display: flex;
+      animation: spin-map 22s linear infinite;
+    }
+
+    .texture {
+      width: 50%;
+      height: 100%;
+      background-image: url("./assets/sprites/mapa.png");
+      background-size: 122% 100%;
+      background-position: center;
+      background-repeat: no-repeat;
+      flex: 0 0 50%;
+      opacity: 0.97;
+    }
+
+    .clouds-scroll {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 200%;
+      height: 100%;
+      display: flex;
+      animation: spin-map 30s linear infinite;
+      pointer-events: none;
+    }
+
+    .cloud-bank {
+      width: 50%;
+      height: 100%;
+      flex: 0 0 50%;
+      filter: blur(0.35px);
+      opacity: 0.55;
+      color: #ffffff;
+    }
+
+    .planet-photo-overlay {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      overflow: hidden;
+      pointer-events: none;
+      opacity: 0;
+      z-index: 8;
+      transition: opacity 0.45s ease;
+    }
+
+    .planet-photo-overlay .photo-layer {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      filter: saturate(0.75) contrast(1.12) sepia(0.18) hue-rotate(-8deg);
+      transition: opacity 0.5s ease;
+      mix-blend-mode: screen;
+    }
+
+    .planet-photo-overlay .photo-layer::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(135deg, rgba(255, 170, 210, 0.22), rgba(255, 245, 255, 0.08)),
+        radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.2), transparent 55%);
+      mix-blend-mode: overlay;
+      pointer-events: none;
+    }
+
+    .planet-photo-overlay .photo-a {
+      background-image: url("./assets/sprites/fotos/foto1.jpg");
+      opacity: 0;
+    }
+
+    .planet-photo-overlay .photo-b {
+      background-image: url("./assets/sprites/fotos/foto2.jpg");
+      opacity: 0;
+      transform: scale(1.03);
+    }
+
+    .earth-wrap.memory-photo-a .planet-photo-overlay,
+    .earth-wrap.memory-photo-b .planet-photo-overlay {
+      opacity: 1;
+    }
+
+    .earth-wrap.memory-photo-a .planet-photo-overlay .photo-a {
+      opacity: 0.34;
+    }
+
+    .earth-wrap.memory-photo-b .planet-photo-overlay .photo-b {
+      opacity: 0.34;
+    }
+
+    .atmosphere {
+      position: absolute;
+      inset: -7%;
+      border-radius: 50%;
+      background:
+        radial-gradient(
+          circle,
+          transparent 54%,
+          rgba(196, 230, 255, 0.05) 62%,
+          rgba(182, 223, 255, 0.22) 70%,
+          rgba(170, 216, 255, 0.12) 78%,
+          transparent 88%
+        );
+      filter: blur(1.6px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+
+    .planet-shadow {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: radial-gradient(
+        circle at 38% 38%,
+        transparent 0 54%,
+        rgba(0, 0, 0, 0.22) 55% 100%
+      );
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .edge-heat {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 6;
+      transition: opacity 0.35s ease;
+      background: radial-gradient(
+        circle,
+        transparent 50%,
+        rgba(255, 180, 92, 0.3) 64%,
+        rgba(255, 132, 45, 0.52) 76%,
+        rgba(255, 96, 28, 0.22) 87%,
+        transparent 96%
+      );
+      mix-blend-mode: normal;
+    }
+
+    .angel-halo {
+      position: absolute;
+      inset: -16%;
+      border-radius: 50%;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 0;
+      transition: opacity 0.35s ease;
+    }
+
+    .angel-halo::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle, transparent 50%, rgba(255, 248, 205, 0.95) 62%, rgba(255, 228, 122, 0.68) 72%, transparent 84%);
+      animation: halo-breathe 2.6s ease-in-out infinite alternate;
+    }
+
+    .angel-halo::after {
+      content: "";
+      position: absolute;
+      inset: -6%;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle, transparent 60%, rgba(255, 240, 170, 0.55) 70%, rgba(255, 214, 110, 0.28) 78%, transparent 88%);
+      filter: blur(2px);
+    }
+
+    .angel-light {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 4;
+      transition: opacity 0.35s ease;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(255, 253, 233, 0.68), transparent 42%),
+        radial-gradient(circle at 60% 60%, rgba(255, 228, 150, 0.36), transparent 54%),
+        radial-gradient(circle, transparent 58%, rgba(255, 228, 132, 0.35) 71%, transparent 82%);
+      mix-blend-mode: screen;
+    }
+
+    .burn-aura {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 3;
+      transition: opacity 0.35s ease;
+    }
+
+    .burn-aura::before {
+      content: "";
+      position: absolute;
+      inset: -7%;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 116, 34, 0.18), transparent 72%);
+      filter: blur(5px);
+      opacity: 0.75;
+    }
+
+    .micro-blasts {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 5;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .blast {
+      position: absolute;
+      left: var(--x, 50%);
+      top: var(--y, 50%);
+      width: var(--size, 12%);
+      aspect-ratio: 1 / 1;
+      transform: translate(-50%, -50%) scale(0.2);
+      opacity: 0;
+      background-image: var(--frame);
+      background-repeat: no-repeat;
+      background-size: contain;
+      background-position: center;
+      mix-blend-mode: screen;
+      filter: drop-shadow(0 0 8px rgba(255, 125, 48, 0.7));
+      animation: mini-blast var(--dur, 1.9s) ease-out infinite;
+      animation-delay: var(--delay, 0s);
+      animation-play-state: paused;
+    }
+
+    .blast::after {
+      content: "";
+      position: absolute;
+      inset: -28%;
+      border-radius: 50%;
+      border: 1.5px solid rgba(255, 178, 98, 0.74);
+      opacity: 0;
+      transform: scale(0.45);
+      animation: mini-ring var(--dur, 1.9s) ease-out infinite;
+      animation-delay: var(--delay, 0s);
+      animation-play-state: paused;
+    }
+
+    .burn-aura .flame {
+      position: absolute;
+      width: var(--w, 9%);
+      height: var(--h, 24%);
+      left: var(--x, 50%);
+      top: var(--y, 50%);
+      transform-origin: 50% 100%;
+      background-image: var(--img);
+      background-repeat: no-repeat;
+      background-size: contain;
+      background-position: center bottom;
+      filter: drop-shadow(0 0 7px rgba(255, 122, 38, 0.6));
+      opacity: 0.92;
+      animation: flame-flicker var(--flicker, 0.95s) ease-in-out infinite alternate;
+      animation-delay: var(--delay, 0s);
+      transform:
+        translate(-50%, -100%)
+        rotate(var(--rot, 0deg))
+        scale(var(--sx, 1), var(--sy, 1));
+    }
+
+    .burn-inner,
+    .burn-inner-in,
+    .burn-overlay {
+      display: none;
+    }
+
+    .text {
+      position: relative;
+      z-index: 30;
+      width: min(760px, 96%);
+      margin: 0;
+      padding: 0.85rem 1rem;
+      border: 1px solid rgba(134, 188, 255, 0.25);
+      border-radius: 12px;
+      background: rgba(5, 12, 24, 0.42);
+      text-align: left;
+      height: 9.6rem;
+      overflow: hidden;
+    }
+
+    .intro-line {
+      margin: 0.12rem 0;
+      color: var(--muted);
+      line-height: 1.55;
+      white-space: pre-line;
+    }
+
+    .intro-line.state {
+      color: #c7dbff;
+    }
+
+    .intro-line.alert {
+      color: #ffd4b2;
+    }
+
+    .intro-line.date,
+    .intro-line.date-angel {
+      margin-top: 0.4rem;
+      color: #ffbe85;
+      font-size: 1.25rem;
+      letter-spacing: 0.16em;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .text.clearing {
+      opacity: 0.12;
+      transition: opacity 0.28s ease;
+    }
+
+    .entity-card {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 12;
+      width: min(360px, 92vw);
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 0.85rem;
+      align-items: center;
+      padding: 0.8rem;
+      border: 1px solid rgba(255, 173, 136, 0.35);
+      border-radius: 12px;
+      background: rgba(28, 10, 6, 0.42);
+      text-align: left;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.55s ease, visibility 0.55s ease;
+    }
+
+    .entity-card.is-visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .entity-photo {
+      width: 120px;
+      aspect-ratio: 1 / 1;
+      border-radius: 10px;
+      object-fit: cover;
+      border: 1px solid rgba(255, 195, 143, 0.42);
+      background: #131313;
+    }
+
+    .entity-photo.is-missing {
+      display: none;
+    }
+
+    .entity-photo-fallback {
+      display: none;
+      width: 120px;
+      aspect-ratio: 1 / 1;
+      border-radius: 10px;
+      border: 1px dashed rgba(255, 195, 143, 0.48);
+      color: #d2aa8c;
+      font-size: 0.88rem;
+      place-items: center;
+      text-align: center;
+      padding: 0.6rem;
+      background: rgba(12, 8, 6, 0.65);
+    }
+
+    .entity-photo-fallback.show {
+      display: grid;
+    }
+
+    .entity-title {
+      margin: 0 0 0.34rem;
+      color: #ffd2af;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-weight: 700;
+      font-size: 0.98rem;
+    }
+
+    .entity-meta {
+      margin: 0.16rem 0;
+      color: #f4cdb0;
+      line-height: 1.45;
+    }
+
+    .back {
+      margin-top: 0.2rem;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 1.05rem;
+      font-weight: 700;
+      display: none;
+    }
+
+    .back:hover { color: var(--accent); }
+
+    .ignite-btn {
+      margin-top: 0.5rem;
+      border: 1px solid rgba(255, 171, 95, 0.58);
+      background: linear-gradient(135deg, #ff9f57, #ff6f3f);
+      color: #fff9f1;
+      border-radius: 999px;
+      padding: 0.62rem 1.15rem;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s ease, filter 0.15s ease;
+    }
+
+    .ignite-btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.06);
+    }
+
+    .action-row {
+      display: none;
+      gap: 0.6rem;
+      margin-top: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .angel-btn {
+      border: 1px solid rgba(176, 210, 255, 0.6);
+      background: linear-gradient(135deg, #98bfff, #c4dbff);
+      color: #102241;
+      border-radius: 999px;
+      padding: 0.62rem 1.15rem;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s ease, filter 0.15s ease;
+    }
+
+    .angel-btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+
+    .music-btn {
+      border: 1px solid rgba(174, 199, 255, 0.5);
+      background: linear-gradient(135deg, #8fb4ff, #6b94f1);
+      color: #f6fbff;
+      border-radius: 999px;
+      padding: 0.62rem 1.15rem;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s ease, filter 0.15s ease;
+    }
+
+    .music-btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+
+    .earth-wrap.ignited .burn-aura {
+      opacity: 1;
+    }
+    .earth-wrap.ignited .micro-blasts {
+      opacity: 1;
+    }
+    .earth-wrap.ignited .blast,
+    .earth-wrap.ignited .blast::after {
+      animation-play-state: running;
+    }
+
+    .earth-wrap.ignited .earth {
+      box-shadow:
+        inset 10px 8px 18px rgba(255, 255, 255, 0.14),
+        0 0 84px rgba(255, 98, 34, 0.52);
+    }
+
+    .earth-wrap.ignited .burn-overlay { opacity: 0; }
+    .earth-wrap.ignited .burn-inner-in { opacity: 0; }
+    .earth-wrap.ignited .edge-heat { opacity: 1; }
+    .earth-wrap.ignited .cloud-bank {
+      color: #6f747d;
+      opacity: 0.74;
+    }
+    .earth-wrap.ignited .atmosphere {
+      background:
+        radial-gradient(
+          circle,
+          transparent 54%,
+          rgba(112, 116, 124, 0.1) 62%,
+          rgba(86, 90, 98, 0.34) 70%,
+          rgba(64, 68, 75, 0.18) 78%,
+          transparent 88%
+        );
+    }
+
+    .earth-wrap.angelic .angel-halo { opacity: 1; }
+    .earth-wrap.angelic .angel-light { opacity: 1; }
+    .earth-wrap.angelic .atmosphere {
+      background:
+        radial-gradient(
+          circle,
+          transparent 54%,
+          rgba(255, 246, 196, 0.2) 62%,
+          rgba(255, 224, 146, 0.42) 70%,
+          rgba(255, 202, 108, 0.2) 78%,
+          transparent 88%
+        );
+    }
+    .earth-wrap.angelic .cloud-bank {
+      color: #f3f8ff;
+      opacity: 0.8;
+    }
+    .earth-wrap.angelic .earth {
+      box-shadow:
+        inset 14px 12px 24px rgba(255, 255, 235, 0.42),
+        0 0 140px rgba(255, 220, 120, 0.88),
+        0 0 36px rgba(255, 239, 172, 0.82);
+    }
+
+    @keyframes spin-map {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    @keyframes flame-flicker {
+      0% {
+        transform:
+          translate(-50%, -100%)
+          rotate(var(--rot, 0deg))
+          scale(var(--sx, 1), calc(var(--sy, 1) * 0.84));
+      }
+      50% {
+        transform:
+          translate(-50%, -100%)
+          rotate(calc(var(--rot, 0deg) + var(--drift, 2deg)))
+          scale(calc(var(--sx, 1) * 1.04), calc(var(--sy, 1) * 1.16));
+      }
+      100% {
+        transform:
+          translate(-50%, -100%)
+          rotate(calc(var(--rot, 0deg) - 1deg))
+          scale(var(--sx, 1), calc(var(--sy, 1) * 0.96));
+      }
+    }
+
+    @keyframes mini-blast {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.2);
+      }
+      10% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(0.95);
+      }
+      28% {
+        opacity: 0.72;
+        transform: translate(-50%, -50%) scale(1.28);
+      }
+      50% {
+        opacity: 0.18;
+        transform: translate(-50%, -50%) scale(1.65);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1.8);
+      }
+    }
+
+    @keyframes mini-ring {
+      0% {
+        opacity: 0;
+        transform: scale(0.35);
+      }
+      14% {
+        opacity: 0.8;
+      }
+      36% {
+        opacity: 0.26;
+        transform: scale(1.42);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(1.78);
+      }
+    }
+
+    @keyframes halo-breathe {
+      from { transform: scale(0.985); opacity: 0.78; }
+      to { transform: scale(1.015); opacity: 1; }
+    }
+
+    @keyframes earth-impact {
+      0% { transform: translateX(0) rotate(0deg); }
+      12% { transform: translateX(-8px) rotate(-1deg); }
+      24% { transform: translateX(8px) rotate(1deg); }
+      36% { transform: translateX(-6px) rotate(-0.8deg); }
+      48% { transform: translateX(6px) rotate(0.8deg); }
+      60% { transform: translateX(-4px) rotate(-0.55deg); }
+      72% { transform: translateX(4px) rotate(0.55deg); }
+      84% { transform: translateX(-2px) rotate(-0.3deg); }
+      100% { transform: translateX(0) rotate(0deg); }
+    }
+
+    @keyframes terminal-blink {
+      0%, 100% { opacity: 0.86; }
+      50% { opacity: 0.56; }
+    }
+
+  </style>
+</head>
+<body>
+  <canvas id="stars" aria-hidden="true"></canvas>
+  <section id="bootScreen" class="boot-screen" aria-live="polite">
+    <div id="bootLog" class="boot-log"></div>
+    <button id="startPrompt" class="start-prompt" type="button">&gt; Pulsa para empezar _</button>
+  </section>
+
+  <main class="scene">
+    <div class="scene-top">
+      <p class="version-corner" id="systemVersion2026">BirthdayOS v2.4</p>
+      <button id="skipBtn" class="skip-btn" type="button">Saltar intro</button>
+    </div>
+
+    <section class="earth-wrap" aria-hidden="true">
+      <div class="burn-aura"></div>
+      <div class="angel-halo"></div>
+      <div class="glow"></div>
+      <div class="moon-track">
+        <div class="moon"></div>
+      </div>
+      <div class="earth">
+        <div class="texture-scroll">
+          <div class="texture"></div>
+          <div class="texture"></div>
+        </div>
+        <div class="planet-photo-overlay" aria-hidden="true">
+          <div class="photo-layer photo-a"></div>
+          <div class="photo-layer photo-b"></div>
+        </div>
+
+        <div class="clouds-scroll">
+          <svg class="cloud-bank" viewBox="0 0 440 220" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+            <g fill="currentColor" transform="translate(18 20)">
+              <ellipse cx="38" cy="48" rx="24" ry="9"/>
+              <ellipse cx="67" cy="52" rx="19" ry="7"/>
+              <ellipse cx="90" cy="47" rx="16" ry="6"/>
+              <ellipse cx="24" cy="60" rx="15" ry="6"/>
+              <ellipse cx="110" cy="58" rx="14" ry="5"/>
+
+              <ellipse cx="128" cy="108" rx="34" ry="12"/>
+              <ellipse cx="166" cy="112" rx="25" ry="9"/>
+              <ellipse cx="196" cy="106" rx="20" ry="7"/>
+              <ellipse cx="148" cy="120" rx="16" ry="6"/>
+              <ellipse cx="214" cy="118" rx="14" ry="5"/>
+
+              <ellipse cx="236" cy="74" rx="30" ry="11"/>
+              <ellipse cx="267" cy="78" rx="22" ry="8"/>
+              <ellipse cx="287" cy="85" rx="15" ry="6"/>
+
+              <ellipse cx="304" cy="148" rx="34" ry="12"/>
+              <ellipse cx="338" cy="152" rx="24" ry="8"/>
+              <ellipse cx="356" cy="160" rx="15" ry="6"/>
+
+              <ellipse cx="372" cy="96" rx="26" ry="10"/>
+              <ellipse cx="398" cy="101" rx="18" ry="7"/>
+              <ellipse cx="415" cy="109" rx="14" ry="6"/>
+            </g>
+          </svg>
+          <svg class="cloud-bank" viewBox="0 0 440 220" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+            <g fill="currentColor" transform="translate(18 20)">
+              <ellipse cx="38" cy="48" rx="24" ry="9"/>
+              <ellipse cx="67" cy="52" rx="19" ry="7"/>
+              <ellipse cx="90" cy="47" rx="16" ry="6"/>
+              <ellipse cx="24" cy="60" rx="15" ry="6"/>
+              <ellipse cx="110" cy="58" rx="14" ry="5"/>
+
+              <ellipse cx="128" cy="108" rx="34" ry="12"/>
+              <ellipse cx="166" cy="112" rx="25" ry="9"/>
+              <ellipse cx="196" cy="106" rx="20" ry="7"/>
+              <ellipse cx="148" cy="120" rx="16" ry="6"/>
+              <ellipse cx="214" cy="118" rx="14" ry="5"/>
+
+              <ellipse cx="236" cy="74" rx="30" ry="11"/>
+              <ellipse cx="267" cy="78" rx="22" ry="8"/>
+              <ellipse cx="287" cy="85" rx="15" ry="6"/>
+
+              <ellipse cx="304" cy="148" rx="34" ry="12"/>
+              <ellipse cx="338" cy="152" rx="24" ry="8"/>
+              <ellipse cx="356" cy="160" rx="15" ry="6"/>
+
+              <ellipse cx="372" cy="96" rx="26" ry="10"/>
+              <ellipse cx="398" cy="101" rx="18" ry="7"/>
+              <ellipse cx="415" cy="109" rx="14" ry="6"/>
+            </g>
+          </svg>
+        </div>
+        <div class="burn-inner-in"></div>
+        <div class="burn-overlay"></div>
+        <div class="edge-heat"></div>
+        <div class="angel-light"></div>
+        <div class="micro-blasts" aria-hidden="true"></div>
+        <div class="planet-shadow"></div>
+      </div>
+      <section id="entityCard" class="entity-card" hidden>
+        <img id="entityPhoto" class="entity-photo" src="./assets/sprites/fotos/bebe.jpg" alt="Foto de bebe" />
+        <div id="entityPhotoFallback" class="entity-photo-fallback">Foto de bebe no cargada</div>
+        <div>
+          <p class="entity-title">Entidad detectada</p>
+          <p id="entityName" class="entity-meta">Nombre: Nuria</p>
+          <p id="entityState" class="entity-meta">Estado: recien nacida</p>
+          <p id="entityClass" class="entity-meta">Clasificacion: nueva incorporacion al planeta</p>
+        </div>
+      </section>
+      <div class="atmosphere"></div>
+    </section>
+
+    <section class="text" id="introLog" aria-live="polite"></section>
+    <div class="action-row">
+      <button id="igniteBtn" class="ignite-btn" type="button">Encender Tierra</button>
+      <button id="angelBtn" class="angel-btn" type="button">Modo angelical</button>
+    </div>
+    <a class="back" href="../index.html">Volver al login</a>
+  </main>
+
+  <audio id="bgMusic" loop preload="auto">
+    <source src="./assets/music/musica/espacio.mp3" type="audio/mpeg" />
+  </audio>
+  <audio id="fireSfx" loop preload="auto">
+    <source src="./assets/music/musica/incendio.mp3" type="audio/mpeg" />
+  </audio>
+  <audio id="angelSfx" loop preload="auto">
+    <source src="./assets/music/musica/angelical.mp3" type="audio/mpeg" />
+  </audio>
+  <audio id="typingSfx" loop preload="auto">
+    <source src="./assets/music/sonido/tecleo.mp3" type="audio/mpeg" />
+  </audio>
+  <audio id="dateSfx" preload="auto">
+    <source src="./assets/music/sonido/teclaFecha.mp3" type="audio/mpeg" />
+  </audio>
+
+  <script>
+    const canvas = document.getElementById("stars");
+    const ctx = canvas.getContext("2d");
+    const bootScreen = document.getElementById("bootScreen");
+    const bootLog = document.getElementById("bootLog");
+    const startPrompt = document.getElementById("startPrompt");
+    const stars = [];
+    const STAR_COUNT = 180;
+    const earthWrap = document.querySelector(".earth-wrap");
+    const burnAura = document.querySelector(".burn-aura");
+    const microBlasts = document.querySelector(".micro-blasts");
+    const flameSprites = [
+      "./assets/sprites/fuego/fuego1.png",
+      "./assets/sprites/fuego/fuego2.png",
+      "./assets/sprites/fuego/fuego3.png",
+      "./assets/sprites/fuego/fuego4.png",
+      "./assets/sprites/fuego/fuego5.png",
+      "./assets/sprites/fuego/fuego6.png",
+      "./assets/sprites/fuego/fuego7.png"
+    ];
+    const explosionFrames = [
+      "./assets/sprites/explosion/explosion1.png",
+      "./assets/sprites/explosion/explosion2.png",
+      "./assets/sprites/explosion/explosion3.png",
+      "./assets/sprites/explosion/explosion4.png",
+      "./assets/sprites/explosion/explosion5.png",
+      "./assets/sprites/explosion/explosion6.png",
+      "./assets/sprites/explosion/explosion7.png"
+    ];
+    const moonTrack = document.querySelector(".moon-track");
+    const moon = document.querySelector(".moon");
+    const introLog = document.getElementById("introLog");
+    const entityCard = document.getElementById("entityCard");
+    const entityPhoto = document.getElementById("entityPhoto");
+    const entityPhotoFallback = document.getElementById("entityPhotoFallback");
+    const entityName = document.getElementById("entityName");
+    const entityState = document.getElementById("entityState");
+    const entityClass = document.getElementById("entityClass");
+    const igniteBtn = document.getElementById("igniteBtn");
+    const angelBtn = document.getElementById("angelBtn");
+    const bgMusic = document.getElementById("bgMusic");
+    const fireSfx = document.getElementById("fireSfx");
+    const angelSfx = document.getElementById("angelSfx");
+    const typingSfx = document.getElementById("typingSfx");
+    const dateSfx = document.getElementById("dateSfx");
+    const skipBtn = document.getElementById("skipBtn");
+    const systemVersion2026 = document.getElementById("systemVersion2026");
+    const MOON_PERIOD_MS = 14000;
+    const NEXT_SCREEN_URL = "./pantalla.html";
+    const BIRTH_YEAR = 2002;
+    const NURIA_PHOTO = "./assets/sprites/fotos/bebe.jpg";
+    const LAURA_PHOTO = "./assets/sprites/fotos/bebeLaura.jpg";
+    const explosionSfxPool = [];
+    const EXPLOSION_SFX_SRC = "./assets/music/sonido/explosion.mp3";
+    let explosionSfxIndex = 0;
+    let lastExplosionSfxAt = 0;
+    let skipArmed = false;
+    let skipTimer = null;
+
+    if (systemVersion2026) {
+      systemVersion2026.textContent = `BirthdayOS v${formatVersionFromAge(2026 - BIRTH_YEAR)}`;
+    }
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      stars.length = 0;
+      for (let i = 0; i < STAR_COUNT; i += 1) {
+        stars.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          r: Math.random() * 1.8 + 0.4,
+          a: Math.random() * 0.8 + 0.15,
+          t: Math.random() * Math.PI * 2,
+          s: Math.random() * 0.02 + 0.005
+        });
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (const star of stars) {
+        star.t += star.s;
+        const alpha = star.a + Math.sin(star.t) * 0.25;
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(235, 245, 255, ${Math.max(0.08, alpha)})`;
+        ctx.fill();
+      }
+      requestAnimationFrame(draw);
+    }
+
+    window.addEventListener("resize", resize);
+    resize();
+    draw();
+    buildFlames();
+    buildMicroBlasts();
+    requestAnimationFrame(animateMicroBlasts);
+    waitForStart();
+    initExplosionSfxPool();
+
+    function setEntityPhoto(src) {
+      if (!entityPhoto) return;
+      entityPhoto.classList.remove("is-missing");
+      if (entityPhotoFallback) {
+        entityPhotoFallback.classList.remove("show");
+      }
+      entityPhoto.onerror = () => {
+        entityPhoto.classList.add("is-missing");
+        if (entityPhotoFallback) {
+          entityPhotoFallback.classList.add("show");
+        }
+      };
+      entityPhoto.src = src;
+    }
+
+    igniteBtn.addEventListener("click", () => {
+      const active = earthWrap.classList.toggle("ignited");
+      if (active) {
+        earthWrap.classList.remove("angelic");
+        angelBtn.textContent = "Modo angelical";
+      }
+      igniteBtn.textContent = active ? "Apagar llamas" : "Encender Tierra";
+      syncSceneAudio();
+    });
+
+    angelBtn.addEventListener("click", () => {
+      const active = earthWrap.classList.toggle("angelic");
+      if (active) {
+        earthWrap.classList.remove("ignited");
+        igniteBtn.textContent = "Encender Tierra";
+      }
+      angelBtn.textContent = active ? "Quitar modo angelical" : "Modo angelical";
+      syncSceneAudio();
+    });
+
+    function animateMoon(timestamp) {
+      const t = (timestamp % MOON_PERIOD_MS) / MOON_PERIOD_MS;
+      const angle = Math.PI + t * Math.PI * 2;
+      const rx = moonTrack.clientWidth * 0.48;
+      const ry = moonTrack.clientHeight * 0.24;
+      const x = Math.cos(angle) * rx;
+      const y = Math.sin(angle) * ry;
+
+      moon.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+
+      // Arriba por detras de la Tierra; abajo por delante.
+      moonTrack.style.zIndex = y < 0 ? "1" : "4";
+
+      requestAnimationFrame(animateMoon);
+    }
+
+    requestAnimationFrame(animateMoon);
+
+    function buildFlames() {
+      if (burnAura.dataset.ready === "1") {
+        return;
+      }
+
+      const count = 64;
+      const radius = 50; // exactamente el filo de la esfera
+      for (let i = 0; i < count; i += 1) {
+        const flame = document.createElement("span");
+        flame.className = "flame";
+
+        const baseAngle = (Math.PI * 2 * i) / count;
+        const angleJitter = (Math.random() - 0.5) * 0.12;
+        const angle = baseAngle + angleJitter;
+        const x = 50 + Math.cos(angle) * radius;
+        const y = 50 + Math.sin(angle) * radius;
+        const deg = (angle * 180) / Math.PI + 90;
+        const variance = (Math.sin(i * 1.9) + 1) / 2;
+        const sprite = flameSprites[i % flameSprites.length];
+
+        flame.style.setProperty("--x", `${x}%`);
+        flame.style.setProperty("--y", `${y}%`);
+        flame.style.setProperty("--rot", `${deg}deg`);
+        flame.style.setProperty("--w", `${6 + variance * 2.8}%`);
+        flame.style.setProperty("--h", `${13 + variance * 8.5}%`);
+        flame.style.setProperty("--sx", `${0.92 + variance * 0.1}`);
+        flame.style.setProperty("--sy", `${0.88 + variance * 0.18}`);
+        flame.style.setProperty("--img", `url('${sprite}')`);
+        flame.style.setProperty("--flicker", `${0.75 + variance * 0.28}s`);
+        flame.style.setProperty("--delay", `${-i * 0.05}s`);
+        flame.style.setProperty("--drift", `${(variance * 2 - 1).toFixed(2)}deg`);
+        flame.style.zIndex = `${Math.floor(variance * 6) + 1}`;
+
+        burnAura.appendChild(flame);
+      }
+
+      burnAura.dataset.ready = "1";
+    }
+
+    function buildMicroBlasts() {
+      if (!microBlasts || microBlasts.dataset.ready === "1") {
+        return;
+      }
+
+      const blastPoints = [
+        { x: 26, y: 36, size: 12.8, d: 1.7, delay: -0.3 },
+        { x: 44, y: 27, size: 11.6, d: 2.1, delay: -1.1 },
+        { x: 63, y: 39, size: 13.9, d: 1.85, delay: -0.7 },
+        { x: 73, y: 58, size: 12.1, d: 1.95, delay: -1.45 },
+        { x: 52, y: 63, size: 14.5, d: 2.2, delay: -0.95 },
+        { x: 34, y: 56, size: 10.9, d: 1.65, delay: -1.8 },
+        { x: 18, y: 50, size: 12.4, d: 2.05, delay: -1.25 },
+        { x: 58, y: 48, size: 11.1, d: 1.6, delay: -2.1 }
+      ];
+
+      for (const point of blastPoints) {
+        const blast = document.createElement("span");
+        blast.className = "blast";
+        blast.style.setProperty("--x", `${point.x}%`);
+        blast.style.setProperty("--y", `${point.y}%`);
+        blast.style.setProperty("--size", `${point.size}%`);
+        blast.style.setProperty("--dur", `${point.d}s`);
+        blast.style.setProperty("--delay", `${point.delay}s`);
+        blast.style.setProperty("--frame", `url('${explosionFrames[0]}')`);
+        blast.dataset.period = `${Math.round(point.d * 1000)}`;
+        blast.dataset.offset = `${Math.round(point.delay * 1000)}`;
+        blast.dataset.frame = "0";
+        microBlasts.appendChild(blast);
+      }
+
+      microBlasts.dataset.ready = "1";
+    }
+
+    function animateMicroBlasts(timestamp) {
+      if (microBlasts && microBlasts.dataset.ready === "1") {
+        const blasts = microBlasts.children;
+        for (let i = 0; i < blasts.length; i += 1) {
+          const blast = blasts[i];
+          const period = Number(blast.dataset.period) || 1800;
+          const offset = Number(blast.dataset.offset) || 0;
+          const local = ((timestamp + offset) % period + period) % period;
+          const frame = Math.min(
+            explosionFrames.length - 1,
+            Math.floor((local / period) * explosionFrames.length)
+          );
+          const prevFrame = Number(blast.dataset.frame ?? "0");
+          if (prevFrame !== frame) {
+            blast.style.setProperty("--frame", `url('${explosionFrames[frame]}')`);
+            blast.dataset.frame = String(frame);
+            if (frame < prevFrame) {
+              playExplosionSfx();
+            }
+          }
+        }
+      }
+      requestAnimationFrame(animateMicroBlasts);
+    }
+
+    function initExplosionSfxPool() {
+      if (explosionSfxPool.length > 0) return;
+      for (let i = 0; i < 6; i += 1) {
+        const audio = new Audio(EXPLOSION_SFX_SRC);
+        audio.preload = "auto";
+        audio.volume = 0.008;
+        explosionSfxPool.push(audio);
+      }
+    }
+
+    function playExplosionSfx() {
+      if (!earthWrap.classList.contains("ignited")) return;
+      if (explosionSfxPool.length === 0) return;
+
+      const now = performance.now();
+      if (now - lastExplosionSfxAt < 180) {
+        return;
+      }
+      lastExplosionSfxAt = now;
+
+      const audio = explosionSfxPool[explosionSfxIndex];
+      explosionSfxIndex = (explosionSfxIndex + 1) % explosionSfxPool.length;
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
+    }
+
+    function sleep(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    async function startTypingSound() {
+      if (!typingSfx) return;
+      try {
+        typingSfx.volume = 0.45;
+        if (typingSfx.paused) {
+          typingSfx.currentTime = 0;
+          await typingSfx.play();
+        }
+      } catch (error) {
+        // Si el navegador bloquea autoplay, simplemente continuamos sin sonido.
+      }
+    }
+
+    function stopTypingSound() {
+      if (!typingSfx) return;
+      typingSfx.pause();
+      typingSfx.currentTime = 0;
+    }
+
+    function syncSceneAudio() {
+      if (!bgMusic || !fireSfx || !angelSfx) return;
+      const onFire = earthWrap.classList.contains("ignited");
+      const onAngelic = earthWrap.classList.contains("angelic");
+
+      if (onAngelic) {
+        bgMusic.pause();
+        bgMusic.currentTime = 0;
+        fireSfx.pause();
+        fireSfx.currentTime = 0;
+        angelSfx.volume = 0.5;
+        if (angelSfx.paused) {
+          angelSfx.currentTime = 0;
+          angelSfx.play().catch(() => {});
+        }
+        return;
+      }
+
+      if (!onFire) {
+        fireSfx.pause();
+        fireSfx.currentTime = 0;
+        angelSfx.pause();
+        angelSfx.currentTime = 0;
+        bgMusic.volume = 0.45;
+        if (bgMusic.paused) {
+          bgMusic.play().catch(() => {});
+        }
+        return;
+      }
+      bgMusic.pause();
+      bgMusic.currentTime = 0;
+      angelSfx.pause();
+      angelSfx.currentTime = 0;
+      fireSfx.volume = 0.62;
+      if (fireSfx.paused) {
+        fireSfx.currentTime = 0;
+        fireSfx.play().catch(() => {});
+      }
+    }
+
+    async function playDateSound() {
+      if (!dateSfx) return;
+      try {
+        dateSfx.volume = 0.8;
+        dateSfx.currentTime = 0;
+        await dateSfx.play();
+      } catch (error) {
+        // Si falla el autoplay, seguimos sin bloquear la secuencia visual.
+      }
+    }
+
+    async function typeText(target, text, baseDelay = 46, withTypingSound = true) {
+      target.textContent = "";
+      if (withTypingSound) {
+        await startTypingSound();
+      }
+      for (let i = 0; i < text.length; i += 1) {
+        const char = text[i];
+        target.textContent += char;
+        let delay = baseDelay;
+        if (char === "." || char === "," || char === ":") delay += 55;
+        if (char === "/") delay += 25;
+        await sleep(delay);
+      }
+      if (withTypingSound) {
+        stopTypingSound();
+      }
+    }
+
+    async function revealDatePhases(target, config = {}) {
+      const dd = config.dd ?? "11";
+      const mm = config.mm ?? "03";
+      const yyyy = config.yyyy ?? "2002";
+      const mode = config.mode ?? "ignited";
+      stopTypingSound();
+      target.textContent = "";
+
+      await playDateSound();
+      target.textContent = dd;
+      await sleep(520);
+
+      await playDateSound();
+      target.textContent = `${dd} / ${mm}`;
+      await sleep(620);
+
+      await playDateSound();
+      target.textContent = `${dd} / ${mm} / ${yyyy}`;
+      await sleep(200);
+
+      if (mode === "angelic") {
+        earthWrap.classList.remove("ignited");
+        earthWrap.classList.add("angelic");
+        igniteBtn.textContent = "Encender Tierra";
+        angelBtn.textContent = "Quitar modo angelical";
+      } else {
+        earthWrap.classList.remove("angelic");
+        earthWrap.classList.add("ignited");
+        igniteBtn.textContent = "Apagar llamas";
+        angelBtn.textContent = "Modo angelical";
+      }
+      syncSceneAudio();
+    }
+
+    async function runImpactPause() {
+      const onFire = earthWrap.classList.contains("ignited");
+      const onAngelic = earthWrap.classList.contains("angelic");
+      const wasBgPlaying = !onFire && bgMusic && !bgMusic.paused;
+      const wasFirePlaying = onFire && fireSfx && !fireSfx.paused;
+      const wasAngelPlaying = onAngelic && angelSfx && !angelSfx.paused;
+
+      if (wasBgPlaying) {
+        bgMusic.pause();
+      }
+      if (wasFirePlaying) {
+        fireSfx.pause();
+      }
+      if (wasAngelPlaying) {
+        angelSfx.pause();
+      }
+
+      earthWrap.classList.remove("impact");
+      void earthWrap.offsetWidth;
+      earthWrap.classList.add("impact");
+      await sleep(980);
+      earthWrap.classList.remove("impact");
+
+      if (wasBgPlaying) {
+        bgMusic.play().catch(() => {});
+      }
+      if (wasFirePlaying) {
+        fireSfx.play().catch(() => {});
+      }
+      if (wasAngelPlaying) {
+        angelSfx.play().catch(() => {});
+      }
+      await sleep(460);
+    }
+
+    async function typeBlock(container, lines) {
+      container.innerHTML = "";
+      container.classList.remove("clearing");
+
+      for (const item of lines) {
+        if (item.impact) {
+          await runImpactPause();
+        }
+        const line = document.createElement("p");
+        line.className = `intro-line${item.tone ? ` ${item.tone}` : ""}`;
+        container.appendChild(line);
+        if (item.tone === "date") {
+          await revealDatePhases(line, { dd: "11", mm: "03", yyyy: "2002", mode: "ignited" });
+        } else if (item.tone === "date-angel") {
+          await revealDatePhases(line, { dd: "21", mm: "08", yyyy: "2007", mode: "angelic" });
+        } else {
+          await typeText(line, item.text, item.speed ?? 46, true);
+        }
+        await sleep(item.pause ?? 350);
+      }
+    }
+
+    async function clearBlock(container) {
+      if (!container) return;
+      container.classList.add("clearing");
+      await sleep(300);
+      container.innerHTML = "";
+      container.classList.remove("clearing");
+    }
+
+    async function playIntro() {
+      if (!introLog || introLog.dataset.played === "1") {
+        return;
+      }
+      introLog.dataset.played = "1";
+      if (entityCard) {
+        entityCard.classList.remove("is-visible");
+      }
+
+      const blocks = [
+        [
+          { text: "Planeta analizado: Tierra", tone: "state", speed: 46, pause: 320 },
+          { text: "Estado historico: relativamente estable", tone: "state", speed: 46, pause: 320 },
+          { text: "Periodo: finales del siglo XX", tone: "state", speed: 46, pause: 850 }
+        ],
+        [
+          { text: "Durante años, el planeta mantuvo un equilibrio aceptable.", speed: 44, pause: 360 },
+          { text: "Los oceanos permanecian tranquilos.", speed: 46, pause: 300 },
+          { text: "Las ciudades crecian.", speed: 46, pause: 300 },
+          { text: "La humanidad continuaba su rutina diaria.", speed: 46, pause: 300 },
+          { text: "Nada indicaba que algo fuera a cambiar.", speed: 46, pause: 900 }
+        ],
+        [
+          { text: "Pero al revisar los registros...", tone: "alert", speed: 44, pause: 700 },
+          { text: "Se detecto una anomalia.", tone: "alert", speed: 44, pause: 420 },
+          { text: "Un evento inesperado aparecio en la linea temporal.", tone: "alert", speed: 44, pause: 900, impact: true }
+        ],
+        [
+          { text: "Buscando origen del evento...", speed: 46, pause: 300 },
+          { text: "Procesando datos...", speed: 46, pause: 420 },
+          { text: "Evento localizado.", tone: "state", speed: 46, pause: 820 }
+        ],
+        [
+          { text: "11 / 03 / 2002", tone: "date", speed: 180, pause: 0 }
+        ],
+        [
+          { text: "Registro activado.", tone: "alert", speed: 44, pause: 300 },
+          { text: "Actividad anomala detectada.", tone: "alert", speed: 44, pause: 460 },
+          { text: "Estabilidad planetaria cayendo rapidamente...", tone: "alert", speed: 44, pause: 320 },
+          { text: "Sistemas de equilibrio fallando...", tone: "alert", speed: 44, pause: 840 }
+        ],
+        [
+          { text: "Intentando identificar el origen del evento...", speed: 46, pause: 420 },
+          { text: "Analizando registros biologicos...", speed: 46, pause: 320 },
+          { text: "Escaneando nuevas entidades registradas en el planeta...", speed: 46, pause: 820 }
+        ],
+        [
+          { text: "Coincidencia encontrada.", tone: "state", speed: 46, pause: 340 },
+          { text: "Origen del evento localizado.", tone: "state", speed: 46, pause: 780 }
+        ],
+        [
+          { text: "Los registros posteriores muestran que la situacion no se estabilizo.", speed: 46, pause: 420 },
+          { text: "Durante los años siguientes, las anomalias continuaron apareciendo.", speed: 46, pause: 820 }
+        ],
+        [
+          { text: "Los sistemas de observacion intentaron adaptarse a las nuevas condiciones.", speed: 46, pause: 420 },
+          { text: "Sin exito inmediato.", tone: "alert", speed: 44, pause: 820 }
+        ],
+        [
+          { text: "El planeta continuo su curso, aunque con dificultades evidentes.", speed: 46, pause: 420 },
+          { text: "La estabilidad registrada antes del evento no volvio a alcanzarse.", tone: "alert", speed: 44, pause: 840 }
+        ],
+        [
+          { text: "Durante un tiempo, no se registraron cambios significativos capaces de revertir la situacion.", speed: 46, pause: 760 },
+          { text: "Hasta que, años despues, los registros detectaron otro evento relevante.", tone: "alert", speed: 44, pause: 1600 }
+        ],
+        [
+          { text: "21 / 08 / 2007", tone: "date-angel", speed: 180, pause: 1200 }
+        ],
+        [
+          { text: "Nuevo registro detectado en la linea temporal.", speed: 46, pause: 320 },
+          { text: "Analizando coincidencias con los registros existentes...", speed: 46, pause: 920 }
+        ],
+        [
+          { text: "Comparando condiciones anteriores y posteriores a este registro.", speed: 46, pause: 940 }
+        ],
+        [
+          { text: "Cambios detectados en los indicadores globales.", tone: "state", speed: 46, pause: 900 }
+        ],
+        [
+          { text: "Los registros muestran una reduccion progresiva de las anomalias detectadas.", tone: "state", speed: 46, pause: 900 }
+        ],
+        [
+          { text: "La estabilidad del sistema comienza a recuperarse.", tone: "state", speed: 46, pause: 900 }
+        ],
+        [
+          { text: "Nuevo periodo registrado en la linea temporal.", speed: 46, pause: 900 },
+          { text: "El planeta vuelve a encontrar cierto equilibrio.", tone: "state", speed: 46, pause: 1500 }
+        ]
+      ];
+
+      const entityRevealBlockIndex = 7;
+      const lauraRevealBlockIndex = 13;
+      const firePhotoNuriaBlockIndex = 9;
+      const firePhotoLauraBlockIndex = 10;
+      for (let i = 0; i < blocks.length; i += 1) {
+        earthWrap.classList.toggle("memory-photo-a", i === firePhotoNuriaBlockIndex);
+        earthWrap.classList.toggle("memory-photo-b", i === firePhotoLauraBlockIndex);
+        await typeBlock(introLog, blocks[i]);
+        if (i === entityRevealBlockIndex && entityCard) {
+          setEntityPhoto(NURIA_PHOTO);
+          if (entityName) entityName.textContent = "Nombre: Nuria";
+          if (entityState) entityState.textContent = "Estado: recien nacida";
+          if (entityClass) entityClass.textContent = "Clasificacion: nueva incorporacion al planeta";
+          entityCard.classList.add("is-visible");
+          await sleep(3600);
+          entityCard.classList.remove("is-visible");
+          await sleep(620);
+        }
+        if (i === lauraRevealBlockIndex && entityCard) {
+          setEntityPhoto(LAURA_PHOTO);
+          if (entityName) entityName.textContent = "Nombre: Laura";
+          if (entityState) entityState.textContent = "Estado: recien nacida";
+          if (entityClass) entityClass.textContent = "Clasificacion: nueva incorporacion al planeta";
+          entityCard.classList.add("is-visible");
+          await sleep(3600);
+          entityCard.classList.remove("is-visible");
+          await sleep(620);
+        }
+        if (i < blocks.length - 1) {
+          await clearBlock(introLog);
+        }
+      }
+      earthWrap.classList.remove("memory-photo-a");
+      earthWrap.classList.remove("memory-photo-b");
+
+      await sleep(1200);
+      goToNextScreen();
+    }
+
+    function goToNextScreen() {
+      window.location.href = NEXT_SCREEN_URL;
+    }
+
+    function formatVersionFromAge(age) {
+      const major = Math.floor(age / 10);
+      const minor = age % 10;
+      return `${major}.${minor}`;
+    }
+
+    async function startExperience() {
+      if (startPrompt) {
+        startPrompt.classList.add("hidden");
+      }
+
+      const bootBlock = [
+        { text: "> Inicializando archivo historico...", speed: 42, pause: 400 },
+        { text: "> Accediendo a registros planetarios...", speed: 42, pause: 420 },
+        { text: "> Analisis de estabilidad iniciado...", speed: 42, pause: 900 }
+      ];
+
+      if (bootLog && bootScreen) {
+        await typeBlock(bootLog, bootBlock);
+        await sleep(650);
+        bootScreen.classList.add("hidden");
+      }
+
+      document.body.classList.add("ready");
+      syncSceneAudio();
+      await sleep(450);
+      await playIntro();
+    }
+
+    function waitForStart() {
+      if (!startPrompt) {
+        startExperience();
+        return;
+      }
+
+      let started = false;
+      startPrompt.addEventListener("click", () => {
+        if (started) return;
+        started = true;
+        startExperience();
+      }, { once: true });
+    }
+
+    if (skipBtn) {
+      skipBtn.addEventListener("click", () => {
+        if (!skipArmed) {
+          skipArmed = true;
+          skipBtn.textContent = "Pulsa otra vez para confirmar";
+          skipTimer = setTimeout(() => {
+            skipArmed = false;
+            skipBtn.textContent = "Saltar intro";
+          }, 3000);
+          return;
+        }
+
+        if (skipTimer) {
+          clearTimeout(skipTimer);
+        }
+        goToNextScreen();
+      });
+    }
+  </script>
+</body>
+</html>
